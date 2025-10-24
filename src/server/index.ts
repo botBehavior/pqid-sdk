@@ -1,2 +1,2 @@
-export * from "./verifyAssertion.js";
-export * from "./verifyCredentials.js";
+export * from "./verifyAssertion";
+export * from "./verifyCredentials";

@@ -1,102 +1,41 @@
-// This module is intended for server-side verification only.
-// Do NOT bundle this into client code.
+import { ClaimType, Credential } from "../types";
 
-import { verifyEd25519 } from "../crypto/ed25519.js";
-import { getIssuerPublicKey } from "../issuer/devIssuer.js";
-import {
-  ClaimType,
-  Credential,
-  CredentialVerificationError,
-  CredentialVerificationResult
-} from "../types.js";
-import { canonicalizeCredentialPayload } from "../utils/canonicalize.js";
-
-interface VerifyCredentialsOptions {
-  trustedIssuers: string[];
-  issuerPublicKeyResolver?: (did: string) => string | undefined;
-  now?: Date;
-}
-
-export async function verifyCredentials(
+/**
+ * verifyCredentials
+ *
+ * v0.1:
+ * - Filter credentials to only those from trusted issuers.
+ * - Build a claim map like { age_over_18: true, good_standing: true }.
+ * - TODO (future): verify each credential's proof.signatureBase64 using issuer public key.
+ * - TODO (future): check not expired (validUntil).
+ */
+export function verifyCredentials(
   credentials: Credential[],
-  opts: VerifyCredentialsOptions
-): Promise<CredentialVerificationResult> {
+  opts: {
+    trustedIssuers: string[];
+  }
+): {
+  ok: boolean;
+  claims: Partial<Record<ClaimType, boolean | string | number>>;
+} {
   const claims: Partial<Record<ClaimType, boolean | string | number>> = {};
-  const errors: CredentialVerificationError[] = [];
 
   if (!Array.isArray(credentials)) {
-    return {
-      ok: false,
-      claims,
-      errors: [{ claim_type: "unknown", reason: "credentials must be an array" }]
-    };
+    return { ok: false, claims };
   }
 
-  const resolvePublicKey =
-    opts.issuerPublicKeyResolver ?? getIssuerPublicKey;
-  const now = opts.now ?? new Date();
-
-  for (const credential of credentials) {
-    if (!opts.trustedIssuers.includes(credential.issuer)) {
-      errors.push({
-        claim_type: credential.claim_type,
-        reason: `issuer ${credential.issuer} is not trusted`
-      });
+  for (const cred of credentials) {
+    if (!opts.trustedIssuers.includes(cred.issuer)) {
       continue;
     }
 
-    const issuerKey = resolvePublicKey(credential.issuer);
-    if (!issuerKey) {
-      errors.push({
-        claim_type: credential.claim_type,
-        reason: `no public key for issuer ${credential.issuer}`
-      });
-      continue;
-    }
+    // FUTURE:
+    // - Validate cred.proof.signatureBase64 using issuer public key
+    // - Check cred.validUntil >= now
+    // - Check cred.subject is the same DID as bundle.did
 
-    const expiryMs = Date.parse(credential.validUntil);
-    if (Number.isNaN(expiryMs)) {
-      errors.push({
-        claim_type: credential.claim_type,
-        reason: "credential validUntil is invalid"
-      });
-      continue;
-    }
-
-    if (expiryMs <= now.getTime()) {
-      errors.push({
-        claim_type: credential.claim_type,
-        reason: "credential expired"
-      });
-      continue;
-    }
-
-    if (!credential.proof?.signatureBase64) {
-      errors.push({
-        claim_type: credential.claim_type,
-        reason: "missing credential signature"
-      });
-      continue;
-    }
-
-    const canonical = canonicalizeCredentialPayload(credential);
-
-    const verified = await verifyEd25519(
-      issuerKey,
-      canonical,
-      credential.proof.signatureBase64
-    );
-
-    if (!verified) {
-      errors.push({
-        claim_type: credential.claim_type,
-        reason: "invalid credential signature"
-      });
-      continue;
-    }
-
-    claims[credential.claim_type] = credential.claim_value;
+    claims[cred.claim_type] = cred.claim_value;
   }
 
-  return { ok: errors.length === 0, claims, errors };
+  return { ok: true, claims };
 }

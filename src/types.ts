@@ -3,13 +3,9 @@ export type ClaimType =
   | "good_standing"
   | "account_age_days_over_30";
 
-export type SignatureAlgorithm =
-  | "DilithiumSignature2025"
-  | "Ed25519Signature2020";
-
 export interface DIDVerificationMethod {
   id: string;
-  type: "DilithiumKey2025" | "KyberKey2025" | "Ed25519VerificationKey2020";
+  type: "DilithiumKey2025" | "KyberKey2025";
   controller: string;
   publicKeyBase64: string;
 }
@@ -25,7 +21,7 @@ export interface DIDDocument {
     serviceEndpoint: string;
   }[];
   proof?: {
-    type: SignatureAlgorithm;
+    type: "DilithiumSignature2025";
     created: string;
     verificationMethod: string;
     signatureBase64: string;
@@ -33,7 +29,7 @@ export interface DIDDocument {
 }
 
 export interface CredentialProof {
-  type: SignatureAlgorithm;
+  type: "DilithiumSignature2025";
   created: string;
   verificationMethod: string;
   signatureBase64: string;
@@ -46,7 +42,7 @@ export interface Credential {
   claim_type: ClaimType;
   claim_value: boolean | string | number;
   issuanceDate: string;
-  validUntil: string;
+  validUntil?: string;
   proof: CredentialProof;
 }
 
@@ -66,7 +62,6 @@ export interface AuthAssertion {
   challenge: string;
   audience: string;
   timestamp: string;
-  spec_version: string;
 }
 
 export interface AuthResponseBundle {
@@ -75,21 +70,4 @@ export interface AuthResponseBundle {
   assertion: AuthAssertion;
   assertion_signatureBase64: string;
   credentials: Credential[];
-}
-
-export interface AssertionVerificationResult {
-  ok: boolean;
-  did?: string;
-  error?: string;
-}
-
-export interface CredentialVerificationError {
-  claim_type: ClaimType | string;
-  reason: string;
-}
-
-export interface CredentialVerificationResult {
-  ok: boolean;
-  claims: Partial<Record<ClaimType, boolean | string | number>>;
-  errors: CredentialVerificationError[];
 }
