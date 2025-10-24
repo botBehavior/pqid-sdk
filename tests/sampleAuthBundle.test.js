@@ -57,6 +57,23 @@ test("verifyAssertion rejects stale assertions", async () => {
   assert.strictEqual(result.error, "stale assertion");
 });
 
+test("verifyAssertion rejects unsupported spec versions", async () => {
+  const { requestAuth } = await import("../dist/browser/requestAuth.js");
+  const { verifyAssertion } = await import("../dist/server/verifyAssertion.js");
+
+  const bundle = await requestAuth({
+    requested_claims: [{ type: "age_over_18" }]
+  });
+
+  const mismatched = JSON.parse(JSON.stringify(bundle));
+  mismatched.assertion.spec_version = "pqid-auth-0.1.1";
+
+  const result = await verifyAssertion(mismatched);
+
+  assert.ok(!result.ok);
+  assert.strictEqual(result.error, "unsupported assertion version");
+});
+
 test("verifyAssertion rejects DID documents without verification methods", async () => {
   const { requestAuth } = await import("../dist/browser/requestAuth.js");
   const { verifyAssertion } = await import("../dist/server/verifyAssertion.js");

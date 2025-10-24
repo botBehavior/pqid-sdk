@@ -17,7 +17,6 @@ import { canonicalizeCredentialPayload } from "../utils/canonicalize.js";
 interface VerifyCredentialsOptions {
   trustedIssuers: string[];
   expectedSubjectDid: string;
-  issuerPublicKeyResolver?: (did: string) => string | undefined;
   now?: Date;
 }
 
@@ -36,8 +35,6 @@ export async function verifyCredentials(
     };
   }
 
-  const resolvePublicKey =
-    opts.issuerPublicKeyResolver ?? getIssuerPublicKey;
   const now = opts.now ?? new Date();
 
   for (const credential of credentials) {
@@ -57,7 +54,7 @@ export async function verifyCredentials(
       continue;
     }
 
-    const issuerKey = resolvePublicKey(credential.issuer);
+    const issuerKey = getIssuerPublicKey(credential.issuer);
     if (!issuerKey) {
       errors.push({
         claim_type: credential.claim_type,

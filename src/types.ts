@@ -93,3 +93,6 @@ export interface CredentialVerificationResult {
   claims: Partial<Record<ClaimType, boolean | string | number>>;
   errors: CredentialVerificationError[];
 }
+
+export type AssertionCheckResult = AssertionVerificationResult;
+export type VerifiedClaimsResult = CredentialVerificationResult;
