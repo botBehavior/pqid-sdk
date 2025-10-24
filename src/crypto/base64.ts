@@ -1,5 +1,8 @@
 declare const Buffer: any;
 
+// All helpers in this module produce unpadded base64url output when applicable to
+// keep signatures deterministic across browser and server runtimes.
+
 function hasBuffer(): boolean {
   return typeof Buffer !== "undefined";
 }

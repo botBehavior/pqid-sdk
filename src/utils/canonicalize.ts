@@ -14,21 +14,30 @@ function canonicalizePairs(pairs: [string, unknown][]): string {
     .join("&");
 }
 
-export function canonicalizeAssertion(
-  assertion: Pick<AuthAssertion, "challenge" | "audience" | "timestamp" | "spec_version">
+export function canonicalizeAssertionPayload(
+  assertion: Pick<
+    AuthAssertion,
+    "challenge" | "audience" | "timestamp" | "spec_version"
+  >
 ): string {
   return canonicalizePairs([
-    ["challenge", assertion.challenge],
     ["audience", assertion.audience],
-    ["timestamp", assertion.timestamp],
-    ["spec_version", assertion.spec_version]
+    ["challenge", assertion.challenge],
+    ["spec_version", assertion.spec_version],
+    ["timestamp", assertion.timestamp]
   ]);
 }
 
 export function canonicalizeCredentialPayload(
   payload: Pick<
     Credential,
-    "id" | "issuer" | "subject" | "claim_type" | "claim_value" | "issuanceDate" | "validUntil"
+    | "id"
+    | "issuer"
+    | "subject"
+    | "claim_type"
+    | "claim_value"
+    | "issuanceDate"
+    | "validUntil"
   >
 ): string {
   return canonicalizePairs([
@@ -41,3 +50,5 @@ export function canonicalizeCredentialPayload(
     ["validUntil", payload.validUntil]
   ]);
 }
+
+export { canonicalizeAssertionPayload as canonicalizeAssertion };

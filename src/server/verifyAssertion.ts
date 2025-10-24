@@ -8,7 +8,10 @@ import {
   AuthResponseBundle,
   DIDVerificationMethod
 } from "../types.js";
-import { ASSERTION_SPEC_VERSION, canonicalizeAssertion } from "../utils/canonicalize.js";
+import {
+  ASSERTION_SPEC_VERSION,
+  canonicalizeAssertionPayload
+} from "../utils/canonicalize.js";
 
 const FRESHNESS_WINDOW_MS = 2 * 60 * 1000;
 
@@ -97,7 +100,7 @@ export async function verifyAssertion(
     return { ok: false, error: "did document key mismatch" };
   }
 
-  const canonical = canonicalizeAssertion(assertion);
+  const canonical = canonicalizeAssertionPayload(assertion);
   const verified = await verifyEd25519(
     publicKeyBase64,
     canonical,

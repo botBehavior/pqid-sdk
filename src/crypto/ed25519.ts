@@ -1,5 +1,8 @@
 import { base64ToBytes, bytesToBase64, utf8ToBytes } from "./base64.js";
 
+// Ed25519 is provided strictly for development. Post-quantum safe signatures
+// will ship in PQID SDK v0.2 and later.
+
 function getSubtleCrypto(): SubtleCrypto {
   if (typeof crypto !== "undefined" && crypto.subtle) {
     return crypto.subtle;

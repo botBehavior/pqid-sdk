@@ -14,7 +14,10 @@ import {
   RequestedClaim,
   DIDDocument
 } from "../types.js";
-import { ASSERTION_SPEC_VERSION, canonicalizeAssertion } from "../utils/canonicalize.js";
+import {
+  ASSERTION_SPEC_VERSION,
+  canonicalizeAssertionPayload
+} from "../utils/canonicalize.js";
 import { issueCredential } from "../issuer/devIssuer.js";
 
 export interface RequestAuthOptions {
@@ -33,7 +36,7 @@ function getDefaultClaimValue(type: ClaimType): boolean | string | number {
   return DEFAULT_CLAIM_VALUES[type] ?? true;
 }
 
-interface WalletState {
+interface InternalWalletState {
   did: string;
   didDocument: DIDDocument;
   verificationMethodId: string;
@@ -42,9 +45,9 @@ interface WalletState {
   publicKeyBase64Url: string;
 }
 
-let walletStatePromise: Promise<WalletState> | null = null;
+let walletStatePromise: Promise<InternalWalletState> | null = null;
 
-async function createWalletState(): Promise<WalletState> {
+async function createWalletState(): Promise<InternalWalletState> {
   const { privateKey, publicKey, publicKeyBase64 } = await generateEd25519KeyPair();
   const publicKeyBase64Url = base64ToBase64Url(publicKeyBase64);
   const did = `did:pqid-dev:${publicKeyBase64Url}`;
@@ -74,46 +77,54 @@ async function createWalletState(): Promise<WalletState> {
   };
 }
 
-async function getWalletState(): Promise<WalletState> {
+async function getInternalWalletState(): Promise<InternalWalletState> {
   if (!walletStatePromise) {
     walletStatePromise = createWalletState();
   }
   return walletStatePromise;
 }
 
-export async function signAssertion(
-  challenge: string,
-  audience: string,
-  timestamp: string
-): Promise<string> {
-  const state = await getWalletState();
-  const assertionPayload: AuthAssertion = {
-    challenge,
-    audience,
-    timestamp,
-    spec_version: ASSERTION_SPEC_VERSION
+export async function getWalletState(): Promise<{
+  did: string;
+  publicKeyBase64Url: string;
+  verificationMethodId: string;
+}> {
+  const state = await getInternalWalletState();
+  return {
+    did: state.did,
+    publicKeyBase64Url: state.publicKeyBase64Url,
+    verificationMethodId: state.verificationMethodId
   };
-  const canonical = canonicalizeAssertion(assertionPayload);
+}
+
+export async function signAssertionPayload(fields: {
+  challenge: string;
+  audience: string;
+  timestamp: string;
+  spec_version: string;
+}): Promise<string> {
+  const state = await getInternalWalletState();
+  const canonical = canonicalizeAssertionPayload(fields);
   return signEd25519WithKey(state.privateKey, canonical);
 }
 
 export async function getDidDocument(): Promise<DIDDocument> {
-  const state = await getWalletState();
+  const state = await getInternalWalletState();
   return state.didDocument;
 }
 
 export async function getWalletDid(): Promise<string> {
-  const state = await getWalletState();
+  const state = await getInternalWalletState();
   return state.did;
 }
 
 export async function getWalletPublicKeyBase64Url(): Promise<string> {
-  const state = await getWalletState();
+  const state = await getInternalWalletState();
   return state.publicKeyBase64Url;
 }
 
 export async function getWalletVerificationMethodId(): Promise<string> {
-  const state = await getWalletState();
+  const state = await getInternalWalletState();
   return state.verificationMethodId;
 }
 
@@ -123,7 +134,7 @@ export async function getAuthBundle(
   opts: RequestAuthOptions
 ): Promise<AuthResponseBundle> {
   const now = new Date().toISOString();
-  const did = await getWalletDid();
+  const { did } = await getInternalWalletState();
   const did_document = await getDidDocument();
 
   const challenge =
@@ -140,20 +151,17 @@ export async function getAuthBundle(
     spec_version: ASSERTION_SPEC_VERSION
   };
 
-  const assertion_signatureBase64 = await signAssertion(
-    challenge,
-    audience,
-    now
-  );
-
-  const requestedTypes = new Set(
-    (opts.requested_claims || []).map((claim) => claim.type)
-  );
+  const assertion_signatureBase64 = await signAssertionPayload(assertion);
 
   const credentials: Credential[] = [];
-  for (const type of requestedTypes) {
+  const seenTypes = new Set<ClaimType>();
+  for (const claim of opts.requested_claims ?? []) {
+    if (seenTypes.has(claim.type)) {
+      continue;
+    }
+    seenTypes.add(claim.type);
     credentials.push(
-      await issueCredential(did, type, getDefaultClaimValue(type))
+      await issueCredential(did, claim.type, getDefaultClaimValue(claim.type))
     );
   }
 
