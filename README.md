@@ -57,7 +57,8 @@ app.post("/api/login-pqid", async (req, res) => {
   }
 
   const credentialResult = await verifyCredentials(bundle.credentials, {
-    trustedIssuers: ["did:pqid-issuer:dev"]
+    trustedIssuers: ["did:pqid-issuer:dev"],
+    expectedSubjectDid: assertionResult.did!
   });
 
   if (!credentialResult.ok) {
@@ -84,7 +85,7 @@ app.post("/api/login-pqid", async (req, res) => {
 
 - **Browser / wallet** – Generates a per-session Ed25519 keypair, derives a DID (`did:pqid-dev:<base64url(pubkey)>`), and signs the relying party challenge locally. The wallet only discloses credentials for claims explicitly requested.
 - **Issuer** – The development issuer (`did:pqid-issuer:dev`) issues single-claim credentials with a 24-hour lifetime and signs them using Ed25519.
-- **Server** – Must call both `verifyAssertion` and `verifyCredentials` before trusting any bundle. Do **not** accept credentials from issuers that are not in your allow-list. Reject assertions that are stale, missing, or fail signature verification.
+- **Server** – Must call both `verifyAssertion` and `verifyCredentials` before trusting any bundle. Do **not** accept credentials from issuers that are not in your allow-list. Reject assertions that are stale, missing, or fail signature verification, and ensure each credential's `subject` matches the DID proven by the assertion.
 
 ### Replay guidance
 

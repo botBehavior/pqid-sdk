@@ -16,6 +16,7 @@ import { canonicalizeCredentialPayload } from "../utils/canonicalize.js";
 
 interface VerifyCredentialsOptions {
   trustedIssuers: string[];
+  expectedSubjectDid: string;
   issuerPublicKeyResolver?: (did: string) => string | undefined;
   now?: Date;
 }
@@ -44,6 +45,14 @@ export async function verifyCredentials(
       errors.push({
         claim_type: credential.claim_type,
         reason: `issuer ${credential.issuer} is not trusted`
+      });
+      continue;
+    }
+
+    if (credential.subject !== opts.expectedSubjectDid) {
+      errors.push({
+        claim_type: credential.claim_type,
+        reason: `credential subject ${credential.subject} does not match expected DID ${opts.expectedSubjectDid}`
       });
       continue;
     }
