@@ -5,6 +5,9 @@ import { canonicalizeCredentialPayload } from "../utils/canonicalize.js";
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Development issuer keys. These are NOT PQ-safe and must never be used in production.
+ */
 const DEV_ISSUER_PRIVATE_KEY_PKCS8_BASE64 =
   "MC4CAQAwBQYDK2VwBCIEIC7AD2uBGyI6eSVtaElV4okuwgFIrOlM08fr4fdsj03u";
 const DEV_ISSUER_PUBLIC_KEY_BASE64 =
@@ -66,4 +69,21 @@ export function getIssuerPublicKey(did: string): string | undefined {
   }
 
   return undefined;
+}
+
+export function checkCredentialExpiry(
+  credential: Pick<Credential, "validUntil">,
+  now: Date = new Date()
+): { ok: boolean; reason?: string } {
+  const expiryMs = Date.parse(credential.validUntil);
+
+  if (Number.isNaN(expiryMs)) {
+    return { ok: false, reason: "credential validUntil is invalid" };
+  }
+
+  if (expiryMs <= now.getTime()) {
+    return { ok: false, reason: "credential expired" };
+  }
+
+  return { ok: true };
 }

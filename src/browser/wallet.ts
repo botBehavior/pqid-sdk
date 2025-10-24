@@ -6,8 +6,32 @@ import {
   generateEd25519KeyPair,
   signEd25519WithKey
 } from "../crypto/ed25519.js";
-import { AuthAssertion, DIDDocument } from "../types.js";
+import {
+  AuthAssertion,
+  AuthResponseBundle,
+  ClaimType,
+  Credential,
+  RequestedClaim,
+  DIDDocument
+} from "../types.js";
 import { ASSERTION_SPEC_VERSION, canonicalizeAssertion } from "../utils/canonicalize.js";
+import { issueCredential } from "../issuer/devIssuer.js";
+
+export interface RequestAuthOptions {
+  requested_claims: RequestedClaim[];
+  challenge?: string;
+  audience?: string;
+}
+
+const DEFAULT_CLAIM_VALUES: Record<ClaimType, boolean | string | number> = {
+  age_over_18: true,
+  good_standing: true,
+  account_age_days_over_30: 60
+};
+
+function getDefaultClaimValue(type: ClaimType): boolean | string | number {
+  return DEFAULT_CLAIM_VALUES[type] ?? true;
+}
 
 interface WalletState {
   did: string;
@@ -91,4 +115,53 @@ export async function getWalletPublicKeyBase64Url(): Promise<string> {
 export async function getWalletVerificationMethodId(): Promise<string> {
   const state = await getWalletState();
   return state.verificationMethodId;
+}
+
+export const PQID_AUTH_SPEC_VERSION = ASSERTION_SPEC_VERSION;
+
+export async function getAuthBundle(
+  opts: RequestAuthOptions
+): Promise<AuthResponseBundle> {
+  const now = new Date().toISOString();
+  const did = await getWalletDid();
+  const did_document = await getDidDocument();
+
+  const challenge =
+    opts.challenge ||
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `nonce-${Math.random().toString(36).slice(2)}`);
+  const audience = opts.audience ?? window.location.origin;
+
+  const assertion: AuthAssertion = {
+    challenge,
+    audience,
+    timestamp: now,
+    spec_version: ASSERTION_SPEC_VERSION
+  };
+
+  const assertion_signatureBase64 = await signAssertion(
+    challenge,
+    audience,
+    now
+  );
+
+  const requestedTypes = new Set(
+    (opts.requested_claims || []).map((claim) => claim.type)
+  );
+
+  const credentials: Credential[] = [];
+  for (const type of requestedTypes) {
+    credentials.push(
+      await issueCredential(did, type, getDefaultClaimValue(type))
+    );
+  }
+
+  return {
+    did,
+    did_document,
+    assertion,
+    assertion_signatureBase64,
+    credentials
+  };
 }
