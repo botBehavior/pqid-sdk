@@ -18,14 +18,17 @@ function pickAuthenticationMethod(bundle: AuthResponseBundle) {
     return undefined;
   }
 
-  const preferredId = didDocument.authentication?.[0];
-  if (preferredId) {
-    return didDocument.verificationMethod.find(
-      (method: DIDVerificationMethod) => method.id === preferredId
-    );
+  const verificationMethods = didDocument.verificationMethod;
+  if (!Array.isArray(verificationMethods) || verificationMethods.length === 0) {
+    return undefined;
   }
 
-  return didDocument.verificationMethod[0];
+  const preferredId = didDocument.authentication?.[0];
+  if (preferredId) {
+    return verificationMethods.find((method: DIDVerificationMethod) => method.id === preferredId);
+  }
+
+  return verificationMethods[0];
 }
 
 export async function verifyAssertion(

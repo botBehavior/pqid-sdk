@@ -56,3 +56,20 @@ test("verifyAssertion rejects stale assertions", async () => {
   assert.ok(!result.ok);
   assert.strictEqual(result.error, "stale assertion");
 });
+
+test("verifyAssertion rejects DID documents without verification methods", async () => {
+  const { requestAuth } = await import("../dist/browser/requestAuth.js");
+  const { verifyAssertion } = await import("../dist/server/verifyAssertion.js");
+
+  const bundle = await requestAuth({
+    requested_claims: [{ type: "age_over_18" }]
+  });
+
+  const invalidBundle = JSON.parse(JSON.stringify(bundle));
+  delete invalidBundle.did_document.verificationMethod;
+
+  const result = await verifyAssertion(invalidBundle);
+
+  assert.ok(!result.ok);
+  assert.strictEqual(result.error, "missing verification method");
+});
