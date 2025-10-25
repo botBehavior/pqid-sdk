@@ -2,6 +2,7 @@
 // Do NOT bundle this into client code.
 
 import { verifyEd25519 } from "../crypto/ed25519.js";
+import { verify, VerificationKey } from "../crypto/index.js";
 import {
   checkCredentialExpiry,
   getIssuerPublicKey
@@ -54,7 +55,7 @@ export async function verifyCredentials(
       continue;
     }
 
-    const issuerKey = getIssuerPublicKey(credential.issuer);
+    const issuerKey = await getIssuerPublicKey(credential.issuer);
     if (!issuerKey) {
       errors.push({
         claim_type: credential.claim_type,
@@ -82,8 +83,15 @@ export async function verifyCredentials(
 
     const canonical = canonicalizeCredentialPayload(credential);
 
-    const verified = await verifyEd25519(
-      issuerKey,
+    // Support multiple signature algorithms
+    const algorithm = credential.proof?.type === "DilithiumSignature2025"
+      ? "DilithiumSignature2025"
+      : credential.proof?.type === "Ed25519Signature2020"
+      ? "Ed25519Signature2020"
+      : "Ed25519Signature2020"; // Default for backward compatibility
+
+    const verified = await verify(
+      { publicKey: issuerKey, algorithm },
       canonical,
       credential.proof.signatureBase64
     );

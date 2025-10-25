@@ -3,6 +3,7 @@
 
 import { base64UrlToBase64 } from "../crypto/base64.js";
 import { verifyEd25519 } from "../crypto/ed25519.js";
+import { verify, VerificationKey } from "../crypto/index.js";
 import {
   AssertionVerificationResult,
   AuthResponseBundle,
@@ -85,7 +86,14 @@ export async function verifyAssertion(
     return { ok: false, error: "missing verification method" };
   }
 
-  if (verificationMethod.type !== "Ed25519VerificationKey2020") {
+  // Support multiple algorithm types
+  const algorithm = verificationMethod.type === "DilithiumKey2025"
+    ? "DilithiumSignature2025"
+    : verificationMethod.type === "Ed25519VerificationKey2020"
+    ? "Ed25519Signature2020"
+    : null;
+
+  if (!algorithm) {
     return { ok: false, error: "unsupported verification method" };
   }
 
@@ -101,8 +109,8 @@ export async function verifyAssertion(
   }
 
   const canonical = canonicalizeAssertionPayload(assertion);
-  const verified = await verifyEd25519(
-    publicKeyBase64,
+  const verified = await verify(
+    { publicKey: publicKeyBase64, algorithm },
     canonical,
     bundle.assertion_signatureBase64
   );

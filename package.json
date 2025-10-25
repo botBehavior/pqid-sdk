@@ -29,7 +29,7 @@
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "lint": "eslint src --max-warnings=0",
-    "test": "npm run build && node --test tests"
+    "test": "npm run build && node --test tests/*.test.js"
   },
   "keywords": [
     "pqid",
@@ -38,6 +38,9 @@
   ],
   "author": "PQID",
   "license": "MIT",
+  "dependencies": {
+    "@noble/post-quantum": "^0.5.2"
+  },
   "devDependencies": {
     "typescript": "^5.4.0"
   }

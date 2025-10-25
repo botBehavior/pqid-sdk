@@ -75,6 +75,7 @@ export interface AuthResponseBundle {
   assertion: AuthAssertion;
   assertion_signatureBase64: string;
   credentials: Credential[];
+  crypto_algorithm?: SignatureAlgorithm; // Algorithm used for signing
 }
 
 export interface AssertionVerificationResult {
@@ -95,4 +96,12 @@ export interface CredentialVerificationResult {
 }
 
 export type AssertionCheckResult = AssertionVerificationResult;
+export interface CryptoKeyPair {
+  algorithm: SignatureAlgorithm;
+  publicKey: Uint8Array | CryptoKey;
+  privateKey: Uint8Array | CryptoKey;
+  publicKeyBase64: string;
+  privateKeyBase64?: string;
+}
+
 export type VerifiedClaimsResult = CredentialVerificationResult;

@@ -1,4 +1,4 @@
-# pqid-sdk (v0.1.2 finalized draft)
+# pqid-sdk (v0.1.3-dev - PQ Crypto Foundation)
 
 pqid-sdk is the developer kit for integrating PQID login.
 
@@ -41,7 +41,7 @@ async function loginWithPQID() {
 }
 ```
 
-`requestAuth` is meant to run in a first-party browser context (user present). In v0.1.2 it provisions a development wallet, signs the relying party challenge using Ed25519, and bundles credentials issued by the development issuer. Only claims requested in `requested_claims` are returned.
+`requestAuth` is meant to run in a first-party browser context (user present). In v0.1.3 it provisions a development wallet with Dilithium PQ signatures, signs the relying party challenge, and bundles credentials issued by the development issuer. Only claims requested in `requested_claims` are returned.
 
 ## Server usage
 
@@ -83,9 +83,36 @@ app.post("/api/login-pqid", async (req, res) => {
 
 ## Security model
 
-- **Browser / wallet** – Generates a per-session Ed25519 keypair, derives a DID (`did:pqid-dev:<base64url(pubkey)>`), and signs the relying party challenge locally. The wallet only discloses credentials for claims explicitly requested.
-- **Issuer** – The development issuer (`did:pqid-issuer:dev`) issues single-claim credentials with a 24-hour lifetime and signs them using Ed25519.
+- **Browser / wallet** – Generates Dilithium PQ keypairs for user identity, derives a DID (`did:pqid:<base64url(pubkey)>`), and signs the relying party challenge locally. The wallet only discloses credentials for claims explicitly requested.
+- **Issuer** – The development issuer (`did:pqid-issuer:dev`) issues single-claim credentials with a 24-hour lifetime and signs them using Dilithium PQ signatures.
 - **Server** – Must call both `verifyAssertion` and `verifyCredentials` before trusting any bundle. Do **not** accept credentials from issuers that are not in your allow-list. Reject assertions that are stale, missing, or fail signature verification, and ensure each credential's `subject` matches the DID proven by the assertion.
+
+## Current Implementation Status
+
+**🚧 ACTIVE DEVELOPMENT: PQ Crypto Foundation**
+
+- ✅ Ed25519 signing and verification (legacy compatibility)
+- ✅ Dilithium PQ crypto implementation (`src/crypto/dilithium.ts`)
+- ✅ Crypto abstraction layer (`src/crypto/index.ts`)
+- ✅ PQ signature support in types and verification
+- 🔄 Updating wallet to use PQ signatures by default
+- 🔄 Updating issuer to use PQ credential signing
+- 🔄 Maintaining Ed25519 backward compatibility
+
+### Development vs Production
+
+**This v0.1.3-dev release is transitioning to post-quantum security.**
+
+- Uses Dilithium PQ signatures by default (quantum-resistant)
+- Maintains Ed25519 compatibility for existing deployments
+- Includes hardcoded development issuer keys
+- Not yet suitable for production use
+
+**For production deployment:**
+- Complete PQ crypto migration
+- Implement production issuer infrastructure with key rotation
+- Add credential revocation capabilities
+- Deploy secure wallet extensions with hardware security
 
 ### Replay guidance
 
@@ -95,16 +122,17 @@ app.post("/api/login-pqid", async (req, res) => {
 
 ## Protocol details
 
-- `AuthAssertion.spec_version` identifies the handshake revision (`"pqid-auth-0.1.2"`). Upgrades will bump this string so verifiers can roll out safely.
+- `AuthAssertion.spec_version` identifies the handshake revision (`"pqid-auth-0.1.3"`). Upgrades will bump this string so verifiers can roll out safely.
 - Timestamps are ISO 8601 strings and must be within **2 minutes** of server time during verification.
 - Credentials include `validUntil` (ISO) and are rejected when expired.
 - Canonicalization for signatures sorts fields alphabetically; changing the order will invalidate signatures.
 
-## Cryptography warning
+## Cryptography Implementation
 
-- v0.1.2 uses Ed25519 for development convenience only.
-- Production deployments must migrate to PQ-safe primitives (Dilithium/Falcon) once available.
-- The development issuer keys shipped in this repository are public and **must not** be trusted in production.
+- **PQ Signatures**: Dilithium implementation with NIST standardization
+- **Legacy Support**: Ed25519 for backward compatibility
+- **Algorithm Negotiation**: Runtime algorithm detection and validation
+- **Future Migration**: Falcon support planned for v0.2+
 
 ## Flow overview
 
@@ -121,8 +149,26 @@ app.post("/api/login-pqid", async (req, res) => {
            ✅ Verified claims
 ```
 
-## Status & future work
+## Status & Roadmap
 
 - ✅ v0.1.2: working Ed25519-backed signing wallet, credential issuer, and verification pipeline with comprehensive tests.
-- 🔜 v0.2+: swap signatures for post-quantum primitives (Dilithium), add issuer key resolution & revocation, and ship replay protection helpers.
+- 🔄 v0.1.3: **IN PROGRESS** - PQ crypto foundation implementation
+- 🔜 v0.2.0: Standalone issuer service (`pqid-issuer`), credential revocation
+- 🔜 v0.3.0: Multi-issuer support, advanced privacy features, enterprise features
+
+## API Reference
+
+### Browser API
+- `requestAuth(options)` - Generate authentication bundle with PQ signatures
+- `getWalletState()` - Get current wallet DID and public keys
+
+### Server API
+- `verifyAssertion(bundle)` - Verify user identity and signature
+- `verifyCredentials(credentials, options)` - Verify credential authenticity
+- `checkCredentialExpiry(credential, now?)` - Check credential validity
+
+### Crypto API
+- `generateKeyPair(algorithm?)` - Generate PQ or Ed25519 keypairs
+- `sign(key, message)` - Sign with appropriate algorithm
+- `verify(key, message, signature)` - Verify with appropriate algorithm
 

@@ -6,13 +6,15 @@ import {
   generateEd25519KeyPair,
   signEd25519WithKey
 } from "../crypto/ed25519.js";
+import { generateKeyPair, sign, KeyPair } from "../crypto/index.js";
 import {
   AuthAssertion,
   AuthResponseBundle,
   ClaimType,
   Credential,
   RequestedClaim,
-  DIDDocument
+  DIDDocument,
+  SignatureAlgorithm
 } from "../types.js";
 import {
   ASSERTION_SPEC_VERSION,
@@ -40,7 +42,7 @@ interface InternalWalletState {
   did: string;
   didDocument: DIDDocument;
   verificationMethodId: string;
-  privateKey: CryptoKey;
+  keyPair: KeyPair; // Updated to use abstracted KeyPair
   publicKeyBase64: string;
   publicKeyBase64Url: string;
 }
@@ -48,10 +50,18 @@ interface InternalWalletState {
 let walletStatePromise: Promise<InternalWalletState> | null = null;
 
 async function createWalletState(): Promise<InternalWalletState> {
-  const { privateKey, publicKey, publicKeyBase64 } = await generateEd25519KeyPair();
-  const publicKeyBase64Url = base64ToBase64Url(publicKeyBase64);
-  const did = `did:pqid-dev:${publicKeyBase64Url}`;
+  // Use PQ crypto by default, fallback to Ed25519 for compatibility
+  const keyPair = await generateKeyPair("DilithiumSignature2025");
+  const publicKeyBase64Url = base64ToBase64Url(keyPair.publicKeyBase64);
+
+  // Update DID generation to support PQ
+  const did = `did:pqid:${publicKeyBase64Url}`;
   const verificationMethodId = `${did}#key-1`;
+
+  // Determine key type based on algorithm
+  const keyType = keyPair.algorithm === "DilithiumSignature2025"
+    ? "DilithiumKey2025"
+    : "Ed25519VerificationKey2020";
 
   const didDocument: DIDDocument = {
     id: did,
@@ -59,9 +69,9 @@ async function createWalletState(): Promise<InternalWalletState> {
     verificationMethod: [
       {
         id: verificationMethodId,
-        type: "Ed25519VerificationKey2020",
+        type: keyType,
         controller: did,
-        publicKeyBase64
+        publicKeyBase64: keyPair.publicKeyBase64
       }
     ],
     authentication: [verificationMethodId]
@@ -71,8 +81,8 @@ async function createWalletState(): Promise<InternalWalletState> {
     did,
     didDocument,
     verificationMethodId,
-    privateKey,
-    publicKeyBase64,
+    keyPair,
+    publicKeyBase64: keyPair.publicKeyBase64,
     publicKeyBase64Url
   };
 }
@@ -105,7 +115,7 @@ export async function signAssertionPayload(fields: {
 }): Promise<string> {
   const state = await getInternalWalletState();
   const canonical = canonicalizeAssertionPayload(fields);
-  return signEd25519WithKey(state.privateKey, canonical);
+  return sign({ privateKey: state.keyPair.privateKey, algorithm: state.keyPair.algorithm }, canonical);
 }
 
 export async function getDidDocument(): Promise<DIDDocument> {

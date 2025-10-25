@@ -11,10 +11,15 @@ test("requestAuth returns a signed auth response bundle", async () => {
     requested_claims: [{ type: "age_over_18", purpose: "Test" }]
   });
 
-  assert.ok(bundle.did.startsWith("did:pqid-dev:"));
+  assert.ok(bundle.did.startsWith("did:pqid:"));
   assert.ok(bundle.assertion_signatureBase64);
 
   const result = await verifyAssertion(bundle);
+  if (!result.ok) {
+    console.log('Assertion verification failed:', result.error);
+    console.log('Bundle DID:', bundle.did);
+    console.log('DID document:', JSON.stringify(bundle.did_document, null, 2));
+  }
   assert.ok(result.ok);
   assert.strictEqual(result.did, bundle.did);
 });
