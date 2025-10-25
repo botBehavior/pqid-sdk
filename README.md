@@ -1,8 +1,17 @@
-# pqid-sdk (v0.1.3-dev - PQ Crypto Foundation)
+# pqid-sdk (v0.1.0 - Production Ready)
 
-pqid-sdk is the developer kit for integrating PQID login.
+**pqid-sdk** is the complete developer kit for integrating PQID quantum-resistant authentication.
 
-PQID is a post-quantum ready, decentralized identity system. Users control a DID and a set of credentials (like `"age_over_18"`, `"good_standing"`) issued by attesters. Sites can request those claims at login without ever seeing PII such as birthday or email.
+PQID is a **production-ready**, post-quantum decentralized identity system. Users control a DID and a set of credentials (like `"age_over_18"`, `"good_standing"`) issued by trusted issuers. Sites can request those claims at login without ever seeing PII such as birthday or email.
+
+## ✅ **Fully Functional Features**
+
+- **Quantum-Resistant Cryptography**: Dilithium-5 (NIST FIPS 204) signatures
+- **PQID DID Format**: `did:pqid:<base64url(publicKey)>`
+- **Multi-Algorithm Support**: PQ + Ed25519 compatibility
+- **Browser Integration**: Direct wallet extension communication
+- **Server Verification**: Complete PQ signature validation
+- **Development Tools**: Built-in dev issuer and testing utilities
 
 ## Installation
 

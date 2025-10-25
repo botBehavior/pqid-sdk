@@ -1,7 +1,7 @@
 {
   "name": "pqid-sdk",
-  "version": "0.1.2",
-  "description": "PQID SDK for integrating Sign in with PQID.",
+  "version": "0.1.0",
+  "description": "PQID SDK - Complete quantum-resistant authentication for web applications",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
