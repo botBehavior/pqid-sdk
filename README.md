@@ -165,7 +165,6 @@ app.post("/api/login-pqid", async (req, res) => {
 - **PQ Signatures**: Dilithium implementation with NIST standardization
 - **Legacy Support**: Ed25519 for backward compatibility
 - **Algorithm Negotiation**: Runtime algorithm detection and validation
-- **Future Migration**: Falcon support planned for v0.2+
 
 ## Flow overview
 
@@ -182,12 +181,16 @@ app.post("/api/login-pqid", async (req, res) => {
            ✅ Verified claims
 ```
 
-## Status & Roadmap
+## Capabilities
 
-- ✅ v0.1.0: Complete PQID ecosystem with Dilithium PQ signatures, production-ready wallet, and issuer services
-- 🔄 v0.1.1: **CURRENT** - Documentation updates and ecosystem integration
-- 🔜 v0.2.0: Multi-issuer ecosystem, advanced privacy features, and enterprise compliance
-- 🔜 v0.3.0: Hardware security integration, mobile wallet support, and advanced cryptography
+The PQID SDK provides:
+
+- **Post-Quantum Cryptography**: Dilithium-5 signatures (NIST FIPS 204)
+- **PQID DID Format**: `did:pqid:<base64url(publicKey)>` for quantum-resistant identities
+- **Multi-Algorithm Support**: PQ + Ed25519 compatibility
+- **Browser Integration**: Direct wallet extension communication
+- **Server Verification**: Complete PQ signature validation with security checks
+- **Development Tools**: Built-in dev issuer and comprehensive testing utilities
 
 ## API Reference
 
