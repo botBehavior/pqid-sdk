@@ -9,51 +9,14 @@ let ml_dsa: any = null;
 export async function loadMLDSA() {
   if (!ml_dsa) {
     try {
-      // Temporarily force fallback for testing
-      throw new Error('Testing fallback implementation');
-      // Try to import @noble/post-quantum ml-dsa
+      // Load real @noble/post-quantum Dilithium (NIST FIPS 204 ML-DSA)
       const pq = await import('@noble/post-quantum/ml-dsa.js');
-      // Use ml_dsa65 for good security/performance balance
+      // Use ml_dsa65 for optimal security/performance balance
       ml_dsa = pq.ml_dsa65;
-      console.log('Successfully loaded @noble/post-quantum ml_dsa65');
+      console.log('Successfully loaded real Dilithium ML-DSA-65 (NIST FIPS 204)');
     } catch (error) {
-      console.log('Failed to load @noble/post-quantum, using fallback:', error instanceof Error ? error.message : String(error));
-      // Fallback: create a simple placeholder for development
-      // In production, you would install dilithium-crystals-js or another PQ library
-      ml_dsa = {
-        async keygen() {
-          // Placeholder: generate mock keypair for development
-          return {
-            publicKey: crypto.getRandomValues(new Uint8Array(1952)), // Correct Dilithium-5 public key length
-            secretKey: crypto.getRandomValues(new Uint8Array(4032))  // Correct Dilithium-5 secret key length
-          };
-        },
-        async sign(secretKey: Uint8Array, message: Uint8Array) {
-          // Simple deterministic signature for development testing
-          // Create signature based on message content (for testing PQ flow)
-          const signature = new Uint8Array(3293);
-          for (let i = 0; i < signature.length; i++) {
-            signature[i] = message[i % message.length];
-          }
-          return signature;
-        },
-        async verify(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array) {
-          // For development testing, accept any signature that matches message pattern
-          // This allows us to test the PQID flow without real crypto
-          const expectedSignature = new Uint8Array(3293);
-          for (let i = 0; i < expectedSignature.length; i++) {
-            expectedSignature[i] = message[i % message.length];
-          }
-
-          // Check if signature matches expected pattern
-          for (let i = 0; i < Math.min(signature.length, expectedSignature.length); i++) {
-            if (signature[i] !== expectedSignature[i]) {
-              return false;
-            }
-          }
-          return true;
-        }
-      };
+      console.error('CRITICAL: Failed to load @noble/post-quantum Dilithium:', error instanceof Error ? error.message : String(error));
+      throw new Error('Real post-quantum cryptography unavailable - cannot proceed with insecure fallbacks');
     }
   }
   return ml_dsa;
@@ -88,7 +51,7 @@ export async function signDilithium(
   const privateKey = base64ToBytes(privateKeyBase64);
   const messageBytes = utf8ToBytes(message);
 
-  const signature = await dsa.sign(privateKey, messageBytes);
+  const signature = await dsa.sign(messageBytes, privateKey);
   return bytesToBase64(signature);
 }
 
@@ -104,7 +67,7 @@ export async function verifyDilithium(
     const messageBytes = utf8ToBytes(message);
     const signature = base64ToBytes(signatureBase64);
 
-    return await dsa.verify(publicKey, messageBytes, signature);
+    return await dsa.verify(signature, messageBytes, publicKey);
   } catch (error) {
     console.error('Dilithium verification failed:', error);
     return false;

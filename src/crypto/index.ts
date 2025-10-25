@@ -1,5 +1,5 @@
 import { SignatureAlgorithm } from "../types.js";
-import { bytesToBase64, utf8ToBytes } from "./base64.js";
+import { bytesToBase64, base64ToBytes, utf8ToBytes } from "./base64.js";
 import * as ed25519 from "./ed25519.js";
 import * as dilithium from "./dilithium.js";
 
@@ -54,7 +54,7 @@ export async function sign(key: SigningKey, message: string): Promise<string> {
         // Pass Uint8Array directly to dilithium signing
         const dsa = await dilithium.loadMLDSA();
         const messageBytes = utf8ToBytes(message);
-        const signature = await dsa.sign(key.privateKey, messageBytes);
+        const signature = await dsa.sign(messageBytes, key.privateKey);
         return bytesToBase64(signature);
       } else if (typeof key.privateKey === 'string') {
         return dilithium.signDilithium(key.privateKey, message);
@@ -73,11 +73,18 @@ export async function sign(key: SigningKey, message: string): Promise<string> {
 export async function verify(key: VerificationKey, message: string, signature: string): Promise<boolean> {
   switch (key.algorithm) {
     case "DilithiumSignature2025":
-      const pubKeyStr = typeof key.publicKey === 'string' ? key.publicKey : bytesToBase64(key.publicKey as Uint8Array);
-      console.log('Dilithium verify: pubKey length:', pubKeyStr.length, 'message length:', message.length, 'signature length:', signature.length);
-      const result = await dilithium.verifyDilithium(pubKeyStr, message, signature);
-      console.log('Dilithium verify result:', result);
-      return result;
+      if (key.publicKey instanceof Uint8Array) {
+        // Pass Uint8Array directly to dilithium verification
+        const dsa = await dilithium.loadMLDSA();
+        const messageBytes = utf8ToBytes(message);
+        const signatureBytes = base64ToBytes(signature);
+        return await dsa.verify(signatureBytes, messageBytes, key.publicKey);
+      } else {
+        const pubKeyStr = typeof key.publicKey === 'string' ? key.publicKey :
+                         key.publicKey instanceof Uint8Array ? bytesToBase64(key.publicKey) :
+                         bytesToBase64(new Uint8Array()); // Should not happen for Dilithium
+        return dilithium.verifyDilithium(pubKeyStr, message, signature);
+      }
 
     case "Ed25519Signature2020":
     default:
