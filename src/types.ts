@@ -1,7 +1,14 @@
 export type ClaimType =
+  // Legacy demo credentials
   | "age_over_18"
   | "good_standing"
-  | "account_age_days_over_30";
+  | "account_age_days_over_30"
+  // OAuth-based credentials
+  | "email_verified"
+  | "google_account_age_over_365"
+  | "github_account_age_over_180"
+  | "apple_user"
+  | "human_user";
 
 export type SignatureAlgorithm =
   | "DilithiumSignature2025"

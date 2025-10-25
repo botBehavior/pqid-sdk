@@ -29,9 +29,16 @@ export interface RequestAuthOptions {
 }
 
 const DEFAULT_CLAIM_VALUES: Record<ClaimType, boolean | string | number> = {
+  // Legacy demo credentials
   age_over_18: true,
   good_standing: true,
-  account_age_days_over_30: 60
+  account_age_days_over_30: 60,
+  // OAuth-based credentials
+  email_verified: true,
+  google_account_age_over_365: true,
+  github_account_age_over_180: true,
+  apple_user: true,
+  human_user: true
 };
 
 function getDefaultClaimValue(type: ClaimType): boolean | string | number {
