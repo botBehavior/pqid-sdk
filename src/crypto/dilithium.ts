@@ -1,25 +1,42 @@
 import { base64ToBytes, bytesToBase64, utf8ToBytes } from "./base64.js";
 
-// Dilithium implementation using @noble/post-quantum (FIPS 204 ML-DSA)
-// This provides NIST-standard post-quantum digital signatures
+// Real Dilithium ML-DSA implementation using @noble/post-quantum
+// This provides NIST FIPS 204 standard post-quantum digital signatures
 
-// Dynamic import to avoid bundling issues in different environments
-let ml_dsa: any = null;
+let mldsasa: any = null;
 
-export async function loadMLDSA() {
-  if (!ml_dsa) {
+async function loadMLDSA() {
+  if (!mldsasa) {
     try {
-      // Load real @noble/post-quantum Dilithium (NIST FIPS 204 ML-DSA)
-      const pq = await import('@noble/post-quantum/ml-dsa.js');
-      // Use ml_dsa65 for optimal security/performance balance
-      ml_dsa = pq.ml_dsa65;
-      console.log('Successfully loaded real Dilithium ML-DSA-65 (NIST FIPS 204)');
+      console.log('🚀 Loading REAL Dilithium ML-DSA-65 (NIST FIPS 204) from @noble/post-quantum');
+      const { ml_dsa65 } = await import('@noble/post-quantum/ml-dsa.js');
+      mldsasa = ml_dsa65;
+      console.log('✅ Real Dilithium ML-DSA-65 loaded successfully');
     } catch (error) {
-      console.error('CRITICAL: Failed to load @noble/post-quantum Dilithium:', error instanceof Error ? error.message : String(error));
-      throw new Error('Real post-quantum cryptography unavailable - cannot proceed with insecure fallbacks');
+      console.error('CRITICAL: Failed to load @noble/post-quantum Dilithium:', error);
+      throw new Error('REAL post-quantum cryptography unavailable - install @noble/post-quantum');
     }
   }
-  return ml_dsa;
+  return mldsasa;
+}
+
+export async function loadMLDSAInterface() {
+  const dsa = await loadMLDSA();
+  return {
+    keygen: async () => {
+      const keypair = await dsa.keygen();
+      return {
+        publicKey: keypair.publicKey,
+        secretKey: keypair.secretKey
+      };
+    },
+    sign: async (message: Uint8Array, secretKey: Uint8Array) => {
+      return await dsa.sign(message, secretKey);
+    },
+    verify: async (signature: Uint8Array, message: Uint8Array, publicKey: Uint8Array) => {
+      return await dsa.verify(signature, message, publicKey);
+    }
+  };
 }
 
 export interface DilithiumKeyPair {
@@ -31,7 +48,7 @@ export interface DilithiumKeyPair {
 
 // Generate Dilithium keypair using FIPS 204 ML-DSA
 export async function generateDilithiumKeyPair(): Promise<DilithiumKeyPair> {
-  const dsa = await loadMLDSA();
+  const dsa = await loadMLDSAInterface();
   const keyPair = await dsa.keygen();
 
   return {
@@ -47,7 +64,7 @@ export async function signDilithium(
   privateKeyBase64: string,
   message: string
 ): Promise<string> {
-  const dsa = await loadMLDSA();
+  const dsa = await loadMLDSAInterface();
   const privateKey = base64ToBytes(privateKeyBase64);
   const messageBytes = utf8ToBytes(message);
 
@@ -62,7 +79,7 @@ export async function verifyDilithium(
   signatureBase64: string
 ): Promise<boolean> {
   try {
-    const dsa = await loadMLDSA();
+    const dsa = await loadMLDSAInterface();
     const publicKey = base64ToBytes(publicKeyBase64);
     const messageBytes = utf8ToBytes(message);
     const signature = base64ToBytes(signatureBase64);
