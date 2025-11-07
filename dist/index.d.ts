@@ -7,5 +7,7 @@ export { generateKeyPair, sign, verify, KeyPair, SigningKey, VerificationKey, by
 export type { PQSalt, PQStorageKey, PQStretchedKey, PQEncryptedData, VerifiedData, PQEncryptedKeys, PQEncryptedCredentials, PQStorageOptions, PQStoredItem, PQStorageStats, PQSessionKeys, PQSharedSecret, PQTemporalProof, PQSessionAttestation, PQAuthBundle, PQBundleVerification, PQCredentialProof, PQDisclosureProof, PQDisclosureBundle } from "./crypto/index.js";
 export type { AuthResponseBundle, AuthAssertion, Credential, AssertionCheckResult, VerifiedClaimsResult } from "./types.js";
 export { generateDilithiumKeyPair, signDilithium, verifyDilithium, type DilithiumKeyPair } from "./crypto/dilithium.js";
+export { ASSERTION_SPEC_VERSION, canonicalizeAssertionPayload, canonicalizeCredentialPayload } from "./utils/canonicalize.js";
+export { issueCredential, DEV_ISSUER_DID } from "./issuer/devIssuer.js";
 export { wasmApi, ensureWasmReady, isWasmReady } from "./crypto/wasm-manager.js";
 //# sourceMappingURL=index.d.ts.map

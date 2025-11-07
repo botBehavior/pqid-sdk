@@ -1,24 +1,14 @@
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";
 import { base64ToBytes, bytesToBase64, utf8ToBytes } from "./base64.js";
-// Real Dilithium ML-DSA implementation using @noble/post-quantum
-// This provides NIST FIPS 204 standard post-quantum digital signatures
-let mldsasa = null;
-async function loadMLDSA() {
-    if (!mldsasa) {
-        try {
-            console.log('🚀 Loading REAL Dilithium ML-DSA-65 (NIST FIPS 204) from @noble/post-quantum');
-            const { ml_dsa65 } = await import('@noble/post-quantum/ml-dsa.js');
-            mldsasa = ml_dsa65;
-            console.log('✅ Real Dilithium ML-DSA-65 loaded successfully');
-        }
-        catch (error) {
-            console.error('CRITICAL: Failed to load @noble/post-quantum Dilithium:', error);
-            throw new Error('REAL post-quantum cryptography unavailable - install @noble/post-quantum');
-        }
+let nobleDSA = ml_dsa65;
+function loadMLDSA() {
+    if (!nobleDSA) {
+        throw new Error("Dilithium ML-DSA module unavailable");
     }
-    return mldsasa;
+    return nobleDSA;
 }
 export async function loadMLDSAInterface() {
-    const dsa = await loadMLDSA();
+    const dsa = loadMLDSA();
     return {
         keygen: async () => {
             const keypair = await dsa.keygen();
