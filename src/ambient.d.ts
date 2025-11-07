@@ -1,4 +1,4 @@
-declare module "@noble/post-quantum/ml-dsa.js" {
+declare module "@noble/post-quantum/ml-dsa" {
   export interface MLDSA65KeyPair {
     publicKey: Uint8Array;
     secretKey: Uint8Array;
@@ -17,7 +17,7 @@ declare module "@noble/post-quantum/ml-dsa.js" {
   export const ml_dsa65: MLDSA65;
 }
 
-declare module "@noble/post-quantum/ml-kem.js" {
+declare module "@noble/post-quantum/ml-kem" {
   export interface MLKEM768KeyPair {
     publicKey: Uint8Array;
     secretKey: Uint8Array;
