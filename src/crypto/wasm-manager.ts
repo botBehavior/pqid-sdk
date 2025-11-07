@@ -1,5 +1,5 @@
-import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";
-import { ml_kem768 } from "@noble/post-quantum/ml-kem";
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa.js";
+import { ml_kem768 } from "@noble/post-quantum/ml-kem.js";
 
 let nobleReady = false;
 

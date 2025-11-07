@@ -1,4 +1,4 @@
-import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa.js";
 import { base64ToBytes, bytesToBase64, utf8ToBytes } from "./base64.js";
 
 type MLDSA65 = typeof ml_dsa65;
