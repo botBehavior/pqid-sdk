@@ -26,10 +26,9 @@ function concatBytes(a: Uint8Array, b: Uint8Array): Uint8Array {
 }
 
 function copyBuffer(data: Uint8Array): ArrayBuffer {
-  if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength) {
-    return data.buffer;
-  }
-  return data.slice().buffer;
+  const copy = new Uint8Array(data.length);
+  copy.set(data);
+  return copy.buffer;
 }
 
 export const wasmApi = {
