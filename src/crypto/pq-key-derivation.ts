@@ -39,34 +39,21 @@ export async function generatePQSalt(): Promise<PQSalt> {
 }
 
 /**
- * Derive a quantum-resistant storage key from user PIN using PQ algorithms
- * Uses Argon2 for key stretching and SHAKE-256 for quantum-resistant hashing
+ * Derive a quantum-resistant storage key from a user PIN using PBKDF2 + SHA-256.
  */
 export async function deriveStorageKey(userPIN: string, salt?: PQSalt, iterations: number = 10000): Promise<PQStorageKey> {
-  console.log('[SDK] deriveStorageKey called with PIN length:', userPIN.length, 'existing salt:', !!salt, 'iterations:', iterations);
-
   try {
     const pqSalt = salt || await generatePQSalt();
-    console.log('[SDK] Salt prepared, salt length:', pqSalt.salt.length);
-
-    // Convert PIN to bytes
     const pinBytes = new TextEncoder().encode(userPIN);
-    console.log('[SDK] PIN converted to bytes, length:', pinBytes.length);
 
-    // Use WASM-based PQ key derivation with configurable iterations
-    console.log('[SDK] Calling wasmApi.derive_pq_key with', iterations, 'iterations...');
     const key = await wasmApi.derive_pq_key(pinBytes, pqSalt.salt, iterations);
-    console.log('[SDK] WASM derive_pq_key completed, key length:', key.length);
 
-    const result = {
+    return {
       key,
       salt: pqSalt,
       keyId: bytesToBase64Url(key.slice(0, 16)), // First 16 bytes as key identifier
       algorithm: 'PQ-KDF-v1'
     };
-
-    console.log('[SDK] deriveStorageKey completed successfully');
-    return result;
   } catch (error) {
     console.error('[SDK] deriveStorageKey failed:', error);
     console.error('[SDK] Error details:', {

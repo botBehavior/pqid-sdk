@@ -2,6 +2,8 @@ import { bytesToBase64, base64ToBytes } from "./base64.js";
 import { PQStorageKey } from "./pq-key-derivation.js";
 import { wasmApi } from "./wasm-manager.js";
 
+const PQ_AES_GCM_IV_LENGTH = 12; // 96-bit nonce per NIST recommendations
+
 // PQ Encryption Layer
 // Provides quantum-resistant encryption for sensitive data
 
@@ -47,7 +49,7 @@ export interface PQEncryptedCredentials {
  * Generate a quantum-resistant initialization vector
  */
 async function generatePQIV(): Promise<Uint8Array> {
-  const iv = new Uint8Array(16); // 128-bit IV for AES-GCM
+  const iv = new Uint8Array(PQ_AES_GCM_IV_LENGTH);
   crypto.getRandomValues(iv);
   return iv;
 }
@@ -74,7 +76,7 @@ export async function pqEncrypt(
   );
 
   return {
-    ciphertext: new Uint8Array(ciphertextWithIv.slice(12)), // Remove IV prefix
+    ciphertext: new Uint8Array(ciphertextWithIv.slice(iv.length)), // Remove IV prefix
     iv,
     salt: key.salt.salt,
     algorithm: 'PQ-AES-GCM-v1',
@@ -101,9 +103,9 @@ export async function pqDecrypt(
     // Reconstruct ciphertext with IV prefix as expected by WASM function
     const ciphertextWithIv = new Uint8Array(encrypted.ciphertext.length + encrypted.iv.length);
     ciphertextWithIv.set(encrypted.iv);
-        ciphertextWithIv.set(encrypted.ciphertext, encrypted.iv.length);
+    ciphertextWithIv.set(encrypted.ciphertext, encrypted.iv.length);
 
-        const decryptedData = await wasmApi.pq_decrypt(ciphertextWithIv, key.key);
+    const decryptedData = await wasmApi.pq_decrypt(ciphertextWithIv, key.key);
 
     // Verify integrity (reconstruct original integrity input)
     const integrityInput = new Uint8Array(decryptedData.length + encrypted.salt.length);
