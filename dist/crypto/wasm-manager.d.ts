@@ -11,9 +11,9 @@ export declare const wasmApi: {
     kyber_encapsulate(publicKey: Uint8Array): Promise<Uint8Array>;
     kyber_decapsulate(ciphertext: Uint8Array, secretKey: Uint8Array): Promise<Uint8Array>;
     create_selective_proof(credential: Uint8Array, disclosedClaims: Uint8Array, proofKey: Uint8Array): Promise<Uint8Array>;
-    verify_selective_proof(proof: Uint8Array, publicKey: Uint8Array): Promise<boolean>;
+    verify_selective_proof(): Promise<boolean>;
     generate_pq_nonce(): Promise<Uint8Array>;
     create_temporal_proof(timestamp: number, nonce: Uint8Array, sessionKey: Uint8Array): Promise<Uint8Array>;
-    verify_temporal_proof(proof: Uint8Array, maxAgeSeconds: number): Promise<boolean>;
+    verify_temporal_proof(): Promise<boolean>;
 };
 //# sourceMappingURL=wasm-manager.d.ts.map

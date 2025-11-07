@@ -18,5 +18,9 @@ createPQAuthBundle, verifyPQAuthBundle, extractClaimsFromBundle, getBundleSecuri
 generateCredentialProof, verifyCredentialProof, generateZKCredentialProof, verifyZKCredentialProof, composeDisclosureBundle, verifyDisclosureBundle, extractClaimsFromBundle as extractClaimsFromDisclosureBundle, determineDisclosureLevel } from "./crypto/index.js";
 // PQ Dilithium Crypto
 export { generateDilithiumKeyPair, signDilithium, verifyDilithium } from "./crypto/dilithium.js";
+// Canonicalization helpers and spec constants
+export { ASSERTION_SPEC_VERSION, canonicalizeAssertionPayload, canonicalizeCredentialPayload } from "./utils/canonicalize.js";
+// Development issuer helpers (useful for test wallets/extensions)
+export { issueCredential, DEV_ISSUER_DID } from "./issuer/devIssuer.js";
 // WASM manager for consistent initialization
 export { wasmApi, ensureWasmReady, isWasmReady } from "./crypto/wasm-manager.js";

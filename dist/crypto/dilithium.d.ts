@@ -1,10 +1,10 @@
 export declare function loadMLDSAInterface(): Promise<{
     keygen: () => Promise<{
-        publicKey: any;
-        secretKey: any;
+        publicKey: Uint8Array<ArrayBufferLike>;
+        secretKey: Uint8Array<ArrayBufferLike>;
     }>;
-    sign: (message: Uint8Array, secretKey: Uint8Array) => Promise<any>;
-    verify: (signature: Uint8Array, message: Uint8Array, publicKey: Uint8Array) => Promise<any>;
+    sign: (message: Uint8Array, secretKey: Uint8Array) => Promise<Uint8Array<ArrayBufferLike>>;
+    verify: (signature: Uint8Array, message: Uint8Array, publicKey: Uint8Array) => Promise<boolean>;
 }>;
 export interface DilithiumKeyPair {
     publicKey: Uint8Array;

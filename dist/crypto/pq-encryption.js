@@ -1,9 +1,10 @@
 import { wasmApi } from "./wasm-manager.js";
+const PQ_AES_GCM_IV_LENGTH = 12; // 96-bit nonce per NIST recommendations
 /**
  * Generate a quantum-resistant initialization vector
  */
 async function generatePQIV() {
-    const iv = new Uint8Array(16); // 128-bit IV for AES-GCM
+    const iv = new Uint8Array(PQ_AES_GCM_IV_LENGTH);
     crypto.getRandomValues(iv);
     return iv;
 }
@@ -20,7 +21,7 @@ export async function pqEncrypt(data, key) {
     integrityInput.set(key.salt.salt, data.length);
     const integrityHash = new Uint8Array(await crypto.subtle.digest('SHA-256', integrityInput));
     return {
-        ciphertext: new Uint8Array(ciphertextWithIv.slice(12)), // Remove IV prefix
+        ciphertext: new Uint8Array(ciphertextWithIv.slice(iv.length)), // Remove IV prefix
         iv,
         salt: key.salt.salt,
         algorithm: 'PQ-AES-GCM-v1',

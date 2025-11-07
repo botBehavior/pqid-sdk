@@ -19,8 +19,7 @@ export interface PQStretchedKey {
  */
 export declare function generatePQSalt(): Promise<PQSalt>;
 /**
- * Derive a quantum-resistant storage key from user PIN using PQ algorithms
- * Uses Argon2 for key stretching and SHAKE-256 for quantum-resistant hashing
+ * Derive a quantum-resistant storage key from a user PIN using PBKDF2 + SHA-256.
  */
 export declare function deriveStorageKey(userPIN: string, salt?: PQSalt, iterations?: number): Promise<PQStorageKey>;
 /**
