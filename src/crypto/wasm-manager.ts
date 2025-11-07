@@ -3,18 +3,15 @@ import { ml_kem768 } from "@noble/post-quantum/ml-kem";
 
 let nobleReady = false;
 
-function assertWebCrypto() {
+export async function ensureWasmReady(): Promise<void> {
+  if (nobleReady) {
+    return;
+  }
   if (typeof crypto === "undefined" || !crypto.subtle) {
     throw new Error("Web Crypto API unavailable in this environment");
   }
-}
-
-export async function ensureWasmReady(): Promise<void> {
-  if (!nobleReady) {
-    assertWebCrypto();
-    nobleReady = true;
-    console.log("[CRYPTO] Noble post-quantum primitives ready");
-  }
+  nobleReady = true;
+  console.log("[CRYPTO] Noble post-quantum primitives ready");
 }
 
 export function isWasmReady(): boolean {
@@ -28,18 +25,25 @@ function concatBytes(a: Uint8Array, b: Uint8Array): Uint8Array {
   return combined;
 }
 
+function copyBuffer(data: Uint8Array): ArrayBuffer {
+  if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength) {
+    return data.buffer;
+  }
+  return data.slice().buffer;
+}
+
 export const wasmApi = {
   async derive_pq_key(password: Uint8Array, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
     await ensureWasmReady();
 
-    const keyMaterial = await crypto.subtle.importKey("raw" as AlgorithmIdentifier, password, "PBKDF2", false, [
+    const keyMaterial = await crypto.subtle.importKey("raw", copyBuffer(password), { name: "PBKDF2" }, false, [
       "deriveBits"
     ]);
 
     const derivedBits = await crypto.subtle.deriveBits(
       {
         name: "PBKDF2",
-        salt,
+        salt: copyBuffer(salt),
         iterations,
         hash: "SHA-256"
       },
@@ -53,14 +57,16 @@ export const wasmApi = {
   async pq_encrypt(plaintext: Uint8Array, key: Uint8Array, nonce: Uint8Array): Promise<Uint8Array> {
     await ensureWasmReady();
 
-    const cryptoKey = await crypto.subtle.importKey("raw", key, "AES-GCM", false, ["encrypt"]);
+    const cryptoKey = await crypto.subtle.importKey("raw", copyBuffer(key), { name: "AES-GCM" }, false, [
+      "encrypt"
+    ]);
     const ciphertext = await crypto.subtle.encrypt(
       {
         name: "AES-GCM",
-        iv: nonce
+        iv: copyBuffer(nonce)
       },
       cryptoKey,
-      plaintext
+      copyBuffer(plaintext)
     );
 
     const result = new Uint8Array(nonce.length + ciphertext.byteLength);
@@ -74,14 +80,16 @@ export const wasmApi = {
     const nonce = ciphertext.slice(0, 12);
     const encryptedData = ciphertext.slice(12);
 
-    const cryptoKey = await crypto.subtle.importKey("raw", key, "AES-GCM", false, ["decrypt"]);
+    const cryptoKey = await crypto.subtle.importKey("raw", copyBuffer(key), { name: "AES-GCM" }, false, [
+      "decrypt"
+    ]);
     const plaintext = await crypto.subtle.decrypt(
       {
         name: "AES-GCM",
-        iv: nonce
+        iv: copyBuffer(nonce)
       },
       cryptoKey,
-      encryptedData
+      copyBuffer(encryptedData)
     );
 
     return new Uint8Array(plaintext);
