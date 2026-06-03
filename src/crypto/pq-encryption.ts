@@ -1,0 +1,205 @@
+import { StorageKey } from "./pq-key-derivation.js";
+import { cryptoApi } from "./wasm-manager.js";
+
+const AES_GCM_IV_LENGTH = 12; // 96-bit nonce per NIST SP 800-38D
+
+// Local at-rest encryption.
+//
+// HONESTY NOTE: This module provides AES-256-GCM authenticated encryption for data at
+// rest (e.g. wallet private keys and credentials behind a user-PIN-derived key). AES is a
+// CLASSICAL cipher; this is NOT a post-quantum scheme. AES-256-GCM is an AEAD construction,
+// so the ciphertext is already integrity-protected by its authentication tag — no separate
+// hash is needed or trustworthy.
+
+export interface EncryptedData {
+  ciphertext: Uint8Array;
+  iv: Uint8Array;
+  algorithm: string;
+  keyId: string;
+  timestamp: number;
+}
+
+export interface EncryptedDataSerializable {
+  ciphertext: string; // base64
+  iv: string; // base64
+  algorithm: string;
+  keyId: string;
+  timestamp: number;
+}
+
+export interface DecryptedData {
+  data: Uint8Array;
+  verified: boolean;
+  timestamp: number;
+}
+
+export interface EncryptedKeys {
+  encryptedKeys: EncryptedData[];
+  keyCount: number;
+  algorithm: string;
+}
+
+export interface EncryptedCredentials {
+  encryptedCredentials: EncryptedData[];
+  credentialCount: number;
+  algorithm: string;
+}
+
+function generateIV(): Uint8Array {
+  const iv = new Uint8Array(AES_GCM_IV_LENGTH);
+  crypto.getRandomValues(iv);
+  return iv;
+}
+
+/**
+ * Encrypt data using AES-256-GCM with a PIN-derived storage key.
+ * Classical authenticated encryption — not quantum-resistant.
+ */
+export async function encrypt(data: Uint8Array, key: StorageKey): Promise<EncryptedData> {
+  const iv = generateIV();
+  const ciphertextWithIv = await cryptoApi.aes_gcm_encrypt(data, key.key, iv);
+
+  return {
+    ciphertext: new Uint8Array(ciphertextWithIv.slice(iv.length)), // Remove IV prefix
+    iv,
+    algorithm: "AES-256-GCM",
+    keyId: key.keyId,
+    timestamp: Date.now()
+  };
+}
+
+/**
+ * Decrypt data encrypted with {@link encrypt}. The GCM authentication tag is verified
+ * during decryption; a tampered ciphertext throws and is reported as not verified.
+ */
+export async function decrypt(encrypted: EncryptedData, key: StorageKey): Promise<DecryptedData> {
+  try {
+    if (encrypted.keyId !== key.keyId) {
+      throw new Error("Key ID mismatch");
+    }
+
+    const ciphertextWithIv = new Uint8Array(encrypted.ciphertext.length + encrypted.iv.length);
+    ciphertextWithIv.set(encrypted.iv);
+    ciphertextWithIv.set(encrypted.ciphertext, encrypted.iv.length);
+
+    // AES-GCM decryption fails (throws) if the auth tag does not validate.
+    const decryptedData = await cryptoApi.aes_gcm_decrypt(ciphertextWithIv, key.key);
+
+    return {
+      data: decryptedData,
+      verified: true,
+      timestamp: encrypted.timestamp
+    };
+  } catch (error) {
+    console.error("Decryption failed:", error);
+    return {
+      data: new Uint8Array(0),
+      verified: false,
+      timestamp: encrypted.timestamp
+    };
+  }
+}
+
+/**
+ * Encrypt multiple private keys at rest.
+ */
+export async function encryptPrivateKeys(
+  keys: Array<{ id: string; key: Uint8Array }>,
+  storageKey: StorageKey
+): Promise<EncryptedKeys> {
+  const encryptedKeys: EncryptedData[] = [];
+
+  for (const keyPair of keys) {
+    const keyData = {
+      id: keyPair.id,
+      algorithm: "DilithiumSignature2025",
+      key: Array.from(keyPair.key)
+    };
+
+    const dataBytes = new TextEncoder().encode(JSON.stringify(keyData));
+    encryptedKeys.push(await encrypt(dataBytes, storageKey));
+  }
+
+  return {
+    encryptedKeys,
+    keyCount: keys.length,
+    algorithm: "AES-256-GCM"
+  };
+}
+
+/**
+ * Decrypt private keys encrypted with {@link encryptPrivateKeys}.
+ */
+export async function decryptPrivateKeys(
+  encryptedKeys: EncryptedKeys,
+  storageKey: StorageKey
+): Promise<Array<{ id: string; key: Uint8Array; verified: boolean }>> {
+  const decryptedKeys: Array<{ id: string; key: Uint8Array; verified: boolean }> = [];
+
+  for (const encrypted of encryptedKeys.encryptedKeys) {
+    const decrypted = await decrypt(encrypted, storageKey);
+
+    if (decrypted.verified && decrypted.data.length > 0) {
+      try {
+        const keyData = JSON.parse(new TextDecoder().decode(decrypted.data));
+        decryptedKeys.push({ id: keyData.id, key: new Uint8Array(keyData.key), verified: true });
+      } catch (error) {
+        console.error("Failed to parse decrypted key data:", error);
+        decryptedKeys.push({ id: "unknown", key: new Uint8Array(0), verified: false });
+      }
+    } else {
+      decryptedKeys.push({ id: "unknown", key: new Uint8Array(0), verified: false });
+    }
+  }
+
+  return decryptedKeys;
+}
+
+/**
+ * Encrypt credentials at rest.
+ */
+export async function encryptCredentials(
+  credentials: Array<{ id: string; data: any }>,
+  storageKey: StorageKey
+): Promise<EncryptedCredentials> {
+  const encryptedCredentials: EncryptedData[] = [];
+
+  for (const credential of credentials) {
+    const dataBytes = new TextEncoder().encode(JSON.stringify(credential));
+    encryptedCredentials.push(await encrypt(dataBytes, storageKey));
+  }
+
+  return {
+    encryptedCredentials,
+    credentialCount: credentials.length,
+    algorithm: "AES-256-GCM"
+  };
+}
+
+/**
+ * Decrypt credentials encrypted with {@link encryptCredentials}.
+ */
+export async function decryptCredentials(
+  encryptedCredentials: EncryptedCredentials,
+  storageKey: StorageKey
+): Promise<Array<{ id: string; data: any; verified: boolean }>> {
+  const decryptedCredentials: Array<{ id: string; data: any; verified: boolean }> = [];
+
+  for (const encrypted of encryptedCredentials.encryptedCredentials) {
+    const decrypted = await decrypt(encrypted, storageKey);
+
+    if (decrypted.verified && decrypted.data.length > 0) {
+      try {
+        const credentialData = JSON.parse(new TextDecoder().decode(decrypted.data));
+        decryptedCredentials.push({ id: credentialData.id, data: credentialData.data, verified: true });
+      } catch (error) {
+        console.error("Failed to parse decrypted credential data:", error);
+        decryptedCredentials.push({ id: "unknown", data: null, verified: false });
+      }
+    } else {
+      decryptedCredentials.push({ id: "unknown", data: null, verified: false });
+    }
+  }
+
+  return decryptedCredentials;
+}

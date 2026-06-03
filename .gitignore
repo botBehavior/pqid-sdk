@@ -1,0 +1,12 @@
+node_modules/
+.npm/
+
+# Secrets / local key material — never commit. (Defensive: the sibling pqid-issuer
+# repo committed these; pqid-sdk currently has none, but keep them ignored here too.)
+data/
+.master_key
+.encrypted_secrets
+issuer-data.json
+*.db
+*.key
+*.pem

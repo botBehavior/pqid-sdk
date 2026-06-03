@@ -1,0 +1,59 @@
+{
+  "name": "pqid-sdk",
+  "version": "0.2.0",
+  "description": "Post-quantum DID authentication SDK — ML-DSA-65 (FIPS 204) assertion and verifiable-credential signing and verification.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./browser": {
+      "import": "./dist/browser/index.js",
+      "types": "./dist/browser/index.d.ts"
+    },
+    "./server": {
+      "import": "./dist/server/index.js",
+      "types": "./dist/server/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types.js",
+      "types": "./dist/types.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.js",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "pqid",
+    "identity",
+    "sdk",
+    "post-quantum",
+    "dilithium",
+    "authentication",
+    "verifiable-credentials"
+  ],
+  "author": "Carter Richardson",
+  "license": "MIT",
+  "dependencies": {
+    "@noble/post-quantum": "^0.5.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
